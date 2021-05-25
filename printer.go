@@ -1,6 +1,6 @@
 // Copyright 2013 The Go Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE filp.
+// license that can be found in the LICENSE file.
 
 // Windows printing.
 package printer
@@ -19,45 +19,6 @@ import (
 )
 
 //go:generate go run mksyscall_windows.go -output zapi.go printer.go
-
-const (
-	// ASCII DLE (DataLinkEscape)
-	DLE byte = 0x10
-
-	// ASCII EOT (EndOfTransmission)
-	EOT byte = 0x04
-
-	// ASCII GS (Group Separator)
-	GS byte = 0x1D
-)
-
-// text replacement map
-var textReplaceMap = map[string]string{
-	// horizontal tab
-	"&#9;":  "\x09",
-	"&#x9;": "\x09",
-
-	// linefeed
-	"&#10;": "\n",
-	"&#xA;": "\n",
-
-	// xml stuff
-	"&apos;": "'",
-	"&quot;": `"`,
-	"&gt;":   ">",
-	"&lt;":   "<",
-
-	// ampersand must be last to avoid double decoding
-	"&amp;": "&",
-}
-
-// replace text from the above map
-func textReplace(data string) string {
-	for k, v := range textReplaceMap {
-		data = strings.Replace(data, k, v, -1)
-	}
-	return data
-}
 
 type DOC_INFO_1 struct {
 	DocName    *uint16
@@ -193,21 +154,6 @@ func ReadNames() ([]string, error) {
 		names = append(names, windows.UTF16PtrToString(p.PrinterName))
 	}
 	return names, nil
-}
-
-type Printer struct {
-	h syscall.Handle
-	// font metrics
-	width, height uint8
-
-	// state toggles ESC[char]
-	underline  uint8
-	emphasize  uint8
-	upsidedown uint8
-	rotate     uint8
-
-	// state toggles GS[char]
-	reverse, smooth uint8
 }
 
 func Open(name string) (*Printer, error) {
@@ -407,7 +353,7 @@ func (p *Printer) StartRawDocument(name string) error {
 	return p.StartDocument(name, datatype)
 }
 
-func (p *Printer) WriteRaw(b []byte) (int, error) {
+func (p *Printer) Write(b []byte) (int, error) {
 	var written uint32
 	err := WritePrinter(p.h, &b[0], uint32(len(b)), &written)
 	if err != nil {
@@ -432,6 +378,60 @@ func (p *Printer) Close() error {
 	return ClosePrinter(p.h)
 }
 
+type Printer struct {
+	h syscall.Handle
+	// font metrics
+	width, height uint8
+
+	// state toggles ESC[char]
+	underline  uint8
+	emphasize  uint8
+	upsidedown uint8
+	rotate     uint8
+
+	// state toggles GS[char]
+	reverse, smooth uint8
+}
+
+const (
+	// ASCII DLE (DataLinkEscape)
+	DLE byte = 0x10
+
+	// ASCII EOT (EndOfTransmission)
+	EOT byte = 0x04
+
+	// ASCII GS (Group Separator)
+	GS byte = 0x1D
+)
+
+// text replacement map
+var textReplaceMap = map[string]string{
+	// horizontal tab
+	"&#9;":  "\x09",
+	"&#x9;": "\x09",
+
+	// linefeed
+	"&#10;": "\n",
+	"&#xA;": "\n",
+
+	// xml stuff
+	"&apos;": "'",
+	"&quot;": `"`,
+	"&gt;":   ">",
+	"&lt;":   "<",
+
+	// ampersand must be last to avoid double decoding
+	"&amp;": "&",
+}
+
+// replace text from the above map
+func textReplace(data string) string {
+	for k, v := range textReplaceMap {
+		data = strings.Replace(data, k, v, -1)
+	}
+	return data
+}
+
 // reset toggles
 func (p *Printer) reset() {
 	p.width = 1
@@ -447,44 +447,44 @@ func (p *Printer) reset() {
 }
 
 // write a string to the printer
-func (p *Printer) Write(data string) (int, error) {
-	return p.WriteRaw([]byte(data))
+func (p *Printer) WriteString(data string) (int, error) {
+	return p.Write([]byte(data))
 }
 
 // init/reset printer settings
 func (p *Printer) Init() {
 	p.reset()
-	p.Write("\x1B@")
+	p.WriteString("\x1B@")
 }
 
 // end output
 func (p *Printer) End() {
-	p.Write("\xFA")
+	p.WriteString("\xFA")
 }
 
 // send cut
 func (p *Printer) Cut() {
-	p.Write("\x1DVA0")
+	p.WriteString("\x1DVA0")
 }
 
 // send cut minus one point (partial cut)
 func (p *Printer) CutPartial() {
-	p.WriteRaw([]byte{GS, 0x56, 1})
+	p.Write([]byte{GS, 0x56, 1})
 }
 
 // send cash
 func (p *Printer) Cash() {
-	p.Write("\x1B\x70\x00\x0A\xFF")
+	p.WriteString("\x1B\x70\x00\x0A\xFF")
 }
 
 // send linefeed
 func (p *Printer) Linefeed() {
-	p.Write("\n")
+	p.WriteString("\n")
 }
 
 // send N formfeeds
 func (p *Printer) FormfeedN(n int) {
-	p.Write(fmt.Sprintf("\x1Bd%c", n))
+	p.WriteString(fmt.Sprintf("\x1Bd%c", n))
 }
 
 // send formfeed
@@ -508,11 +508,11 @@ func (p *Printer) SetFont(font string) {
 		f = 0
 	}
 
-	p.Write(fmt.Sprintf("\x1BM%c", f))
+	p.WriteString(fmt.Sprintf("\x1BM%c", f))
 }
 
 func (p *Printer) SendFontSize() {
-	p.Write(fmt.Sprintf("\x1D!%c", ((p.width-1)<<4)|(p.height-1)))
+	p.WriteString(fmt.Sprintf("\x1D!%c", ((p.width-1)<<4)|(p.height-1)))
 }
 
 // set font size
@@ -528,42 +528,42 @@ func (p *Printer) SetFontSize(width, height uint8) {
 
 // send underline
 func (p *Printer) SendUnderline() {
-	p.Write(fmt.Sprintf("\x1B-%c", p.underline))
+	p.WriteString(fmt.Sprintf("\x1B-%c", p.underline))
 }
 
 // send emphasize / doublestrike
 func (p *Printer) SendEmphasize() {
-	p.Write(fmt.Sprintf("\x1BG%c", p.emphasize))
+	p.WriteString(fmt.Sprintf("\x1BG%c", p.emphasize))
 }
 
 // send upsidedown
 func (p *Printer) SendUpsidedown() {
-	p.Write(fmt.Sprintf("\x1B{%c", p.upsidedown))
+	p.WriteString(fmt.Sprintf("\x1B{%c", p.upsidedown))
 }
 
 // send rotate
 func (p *Printer) SendRotate() {
-	p.Write(fmt.Sprintf("\x1BR%c", p.rotate))
+	p.WriteString(fmt.Sprintf("\x1BR%c", p.rotate))
 }
 
 // send reverse
 func (p *Printer) SendReverse() {
-	p.Write(fmt.Sprintf("\x1DB%c", p.reverse))
+	p.WriteString(fmt.Sprintf("\x1DB%c", p.reverse))
 }
 
 // send smooth
 func (p *Printer) SendSmooth() {
-	p.Write(fmt.Sprintf("\x1Db%c", p.smooth))
+	p.WriteString(fmt.Sprintf("\x1Db%c", p.smooth))
 }
 
 // send move x
 func (p *Printer) SendMoveX(x uint16) {
-	p.Write(string([]byte{0x1b, 0x24, byte(x % 256), byte(x / 256)}))
+	p.WriteString(string([]byte{0x1b, 0x24, byte(x % 256), byte(x / 256)}))
 }
 
 // send move y
 func (p *Printer) SendMoveY(y uint16) {
-	p.Write(string([]byte{0x1d, 0x24, byte(y % 256), byte(y / 256)}))
+	p.WriteString(string([]byte{0x1d, 0x24, byte(y % 256), byte(y / 256)}))
 }
 
 // set underline
@@ -605,7 +605,7 @@ func (p *Printer) SetSmooth(v uint8) {
 // pulse (open the drawer)
 func (p *Printer) Pulse() {
 	// with t=2 -- meaning 2*2msec
-	p.Write("\x1Bp\x02")
+	p.WriteString("\x1Bp\x02")
 }
 
 // set alignment
@@ -621,7 +621,7 @@ func (p *Printer) SetAlign(align string) {
 	default:
 		log.Fatalf("Invalid alignment: %s", align)
 	}
-	p.Write(fmt.Sprintf("\x1Ba%c", a))
+	p.WriteString(fmt.Sprintf("\x1Ba%c", a))
 }
 
 // set language -- ESC R
@@ -652,7 +652,7 @@ func (p *Printer) SetLang(lang string) {
 	default:
 		log.Fatalf("Invalid language: %s", lang)
 	}
-	p.Write(fmt.Sprintf("\x1BR%c", l))
+	p.WriteString(fmt.Sprintf("\x1BR%c", l))
 }
 
 // do a block of text
@@ -747,7 +747,7 @@ func (p *Printer) Text(params map[string]string, data string) {
 	// do text replace, then write data
 	data = textReplace(data)
 	if len(data) > 0 {
-		p.Write(data)
+		p.WriteString(data)
 	}
 }
 
@@ -823,20 +823,20 @@ func (p *Printer) Barcode(barcode string, format int) {
 
 	// write barcode
 	if format > 69 {
-		p.Write(fmt.Sprintf("\x1dk"+code+"%v%v", len(barcode), barcode))
+		p.WriteString(fmt.Sprintf("\x1dk"+code+"%v%v", len(barcode), barcode))
 	} else if format < 69 {
-		p.Write(fmt.Sprintf("\x1dk"+code+"%v\x00", barcode))
+		p.WriteString(fmt.Sprintf("\x1dk"+code+"%v\x00", barcode))
 	}
-	p.Write(fmt.Sprintf("%v", barcode))
+	p.WriteString(fmt.Sprintf("%v", barcode))
 }
 
 // used to send graphics headers
 func (p *Printer) gSend(m byte, fn byte, data []byte) {
 	l := len(data) + 2
 
-	p.Write("\x1b(L")
-	p.WriteRaw([]byte{byte(l % 256), byte(l / 256), m, fn})
-	p.WriteRaw(data)
+	p.WriteString("\x1b(L")
+	p.Write([]byte{byte(l % 256), byte(l / 256), m, fn})
+	p.Write(data)
 }
 
 // write an image
@@ -909,7 +909,7 @@ func (p *Printer) WriteNode(name string, params map[string]string, data string) 
 		}
 		cstr = fmt.Sprintf(" => '%s'", str)
 	}
-	log.Printf("Write: %s => %+v%s\n", name, params, cstr)
+	log.Printf("WriteString: %s => %+v%s\n", name, params, cstr)
 
 	switch name {
 	case "text":
