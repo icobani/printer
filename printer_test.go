@@ -5,10 +5,59 @@
 package printer
 
 import (
+	"bytes"
 	"encoding/json"
 	"golang.org/x/text/encoding/charmap"
+	"log"
+	"os"
 	"testing"
 )
+
+func TestPrinttofile(t *testing.T) {
+	filerc, err := os.Open("file.pj")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer filerc.Close()
+	PrintToFile(filerc)
+}
+func PrintToFile(filerc *os.File) error {
+	name, err := Default()
+	if err != nil {
+		return err
+	}
+
+	p, err := Open(name)
+	p.Debug = true
+	if err != nil {
+		return err
+	}
+	defer p.Close()
+
+	err = p.StartDocument(filerc.Name(), "RAW")
+	if err != nil {
+		return err
+	}
+	defer p.EndDocument()
+	err = p.StartPage()
+	if err != nil {
+		return err
+	}
+
+	p.Init()
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(filerc)
+	contents := buf.Bytes()
+
+	p.Write(contents)
+
+	err = p.EndPage()
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func TestPrinter(t *testing.T) {
 	name, err := Default()
@@ -17,6 +66,7 @@ func TestPrinter(t *testing.T) {
 	}
 
 	p, err := Open(name)
+	p.Debug = true
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}

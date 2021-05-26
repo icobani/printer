@@ -8,6 +8,7 @@ package printer
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strconv"
 	"strings"
@@ -359,10 +360,19 @@ func (p *Printer) Write(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if p.Debug {
+		p.data = append(p.data, b...)
+	}
 	return int(written), nil
 }
 
 func (p *Printer) EndDocument() error {
+	if p.Debug {
+		err := ioutil.WriteFile("file.pj", p.data, 0644)
+		if err != nil {
+			// handle error
+		}
+	}
 	return EndDocPrinter(p.h)
 }
 
@@ -391,6 +401,8 @@ type Printer struct {
 
 	// state toggles GS[char]
 	reverse, smooth uint8
+	Debug           bool
+	data            []byte
 }
 
 const (
