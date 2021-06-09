@@ -7,6 +7,7 @@ package printer
 import (
 	"bytes"
 	"encoding/json"
+
 	"golang.org/x/text/encoding/charmap"
 	"log"
 	"os"
@@ -309,4 +310,84 @@ func TestJobs(t *testing.T) {
 			}
 		}
 	}
+}
+func TestPrinter_QRCode(t *testing.T) {
+	name, err := Default()
+	if err != nil {
+		t.Fatalf("Default failed: %v", err)
+	}
+
+	p, err := Open(name)
+	p.Debug = true
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer p.Close()
+
+	err = p.StartDocument("my document", "RAW")
+	if err != nil {
+		t.Fatalf("StartDocument failed: %v", err)
+	}
+	defer p.EndDocument()
+	err = p.StartPage()
+	if err != nil {
+		t.Fatalf("StartPage failed: %v", err)
+	}
+
+	p.Init()
+	p.SetFontSize(2, 2)
+	p.SetFont("B")
+	p.SetAlign("center")
+	p.WriteString("** CARD PAYMENT **\n")
+	p.WriteString("------------------------\n")
+	p.WriteString("GETMENULINK Ref: 1544\n")
+	p.WriteString("ACEPTED (Auto)\n")
+
+	p.Cut()
+
+	err = p.EndPage()
+	if err != nil {
+		t.Fatalf("EndPage failed: %v", err)
+	}
+}
+
+func TestMercanPrinter(t *testing.T) {
+	name, err := Default()
+	if err != nil {
+		t.Fatalf("Default failed: %v", err)
+	}
+
+	p, err := Open(name)
+	p.Debug = true
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer p.Close()
+
+	err = p.StartDocument("my document", "RAW")
+	if err != nil {
+		t.Fatalf("StartDocument failed: %v", err)
+	}
+	defer p.EndDocument()
+	err = p.StartPage()
+	if err != nil {
+		t.Fatalf("StartPage failed: %v", err)
+	}
+
+	p.Init()
+	p.SetFontSize(2, 2)
+	p.SetFont("B")
+	p.SetAlign("center")
+	p.WriteString("Mercan'in Odasi\n")
+	p.WriteString("Kapiyi Calmadan\n")
+	p.WriteString("** G I R M E Y I N **\n")
+
+	p.Formfeed()
+	p.Cut()
+
+	err = p.EndPage()
+	if err != nil {
+		t.Fatalf("EndPage failed: %v", err)
+	}
+
 }

@@ -87,21 +87,28 @@ const (
 )
 
 const (
-	JOB_STATUS_PAUSED            = 0x00000001 // Job is paused
-	JOB_STATUS_ERROR             = 0x00000002 // An error is associated with the job
-	JOB_STATUS_DELETING          = 0x00000004 // Job is being deleted
-	JOB_STATUS_SPOOLING          = 0x00000008 // Job is spooling
-	JOB_STATUS_PRINTING          = 0x00000010 // Job is printing
-	JOB_STATUS_OFFLINE           = 0x00000020 // Printer is offline
-	JOB_STATUS_PAPEROUT          = 0x00000040 // Printer is out of paper
-	JOB_STATUS_PRINTED           = 0x00000080 // Job has printed
-	JOB_STATUS_DELETED           = 0x00000100 // Job has been deleted
-	JOB_STATUS_BLOCKED_DEVQ      = 0x00000200 // Printer driver cannot print the job
-	JOB_STATUS_USER_INTERVENTION = 0x00000400 // User action required
-	JOB_STATUS_RESTART           = 0x00000800 // Job has been restarted
-	JOB_STATUS_COMPLETE          = 0x00001000 // Job has been delivered to the printer
-	JOB_STATUS_RETAINED          = 0x00002000 // Job has been retained in the print queue
-	JOB_STATUS_RENDERING_LOCALLY = 0x00004000 // Job rendering locally on the client
+	JOB_STATUS_PAUSED                  = 0x00000001 // Job is paused
+	JOB_STATUS_ERROR                   = 0x00000002 // An error is associated with the job
+	JOB_STATUS_DELETING                = 0x00000004 // Job is being deleted
+	JOB_STATUS_SPOOLING                = 0x00000008 // Job is spooling
+	JOB_STATUS_PRINTING                = 0x00000010 // Job is printing
+	JOB_STATUS_OFFLINE                 = 0x00000020 // Printer is offline
+	JOB_STATUS_PAPEROUT                = 0x00000040 // Printer is out of paper
+	JOB_STATUS_PRINTED                 = 0x00000080 // Job has printed
+	JOB_STATUS_DELETED                 = 0x00000100 // Job has been deleted
+	JOB_STATUS_BLOCKED_DEVQ            = 0x00000200 // Printer driver cannot print the job
+	JOB_STATUS_USER_INTERVENTION       = 0x00000400 // User action required
+	JOB_STATUS_RESTART                 = 0x00000800 // Job has been restarted
+	JOB_STATUS_COMPLETE                = 0x00001000 // Job has been delivered to the printer
+	JOB_STATUS_RETAINED                = 0x00002000 // Job has been retained in the print queue
+	JOB_STATUS_RENDERING_LOCALLY       = 0x00004000 // Job rendering locally on the client
+	esc                          byte  = 0x1B
+	gs                           byte  = 0x1D
+	fs                           byte  = 0x1C
+	QRCodeErrorCorrectionLevelL  uint8 = 48
+	QRCodeErrorCorrectionLevelM  uint8 = 49
+	QRCodeErrorCorrectionLevelQ  uint8 = 50
+	QRCodeErrorCorrectionLevelH  uint8 = 51
 )
 
 //sys	GetDefaultPrinter(buf *uint16, bufN *uint32) (err error) = winspool.GetDefaultPrinterW
